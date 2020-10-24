@@ -6,8 +6,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"sync"
-	"time"
 )
 
 type Result struct {
@@ -18,45 +16,43 @@ type Result struct {
 }
 
 func All(ctx context.Context, phrase string, files []string) <-chan []Result {
+
 	ch := make(chan []Result)
 	reads := make([]*os.File, 0)
 
+	var read *os.File
 	for _, file := range files {
 		read, err := os.Open(file)
-
 		if err != nil {
 			log.Print(err)
 		}
 
 		reads = append(reads, read)
+
 	}
-	wg := sync.WaitGroup{}
 
 	goroutines := len(files)
 
 	for i := 0; i < goroutines; i++ {
-		wg.Add(1)
 		i := i
 		go func(ch chan<- []Result, ctx context.Context) {
-			defer wg.Done()
-
 			buf := make([]byte, 4094)
 			content := make([]byte, 0)
 
 			results := make([]Result, 0)
 
 			for {
-				read, err := reads[i].Read(buf)
+				rd, err := reads[i].Read(buf)
 
 				if err == io.EOF {
-					content = append(content, buf[:read]...)
+					content = append(content, buf[:rd]...)
 					break
 				}
 				if err != nil {
 					log.Print(err)
 				}
 
-				content = append(content, buf[:read]...)
+				content = append(content, buf[:rd]...)
 			}
 			data := string(content)
 
@@ -71,7 +67,9 @@ func All(ctx context.Context, phrase string, files []string) <-chan []Result {
 						LineNum: int64(line + 1),
 						ColNum:  int64(pos + 1),
 					}
-					results = append(results, result)
+					if	result.ColNum != -1{
+						results = append(results, result)
+					}
 				} //} else {
 			}
 			//	result = Result{
@@ -82,18 +80,13 @@ func All(ctx context.Context, phrase string, files []string) <-chan []Result {
 			//	results = append(results, result)
 			//}
 			ch <- results
+
 		}(ch, ctx)
 
 	}
-
 	go func() {
-		defer close(ch)
-		wg.Wait()
+		defer read.Close()
+		return
 	}()
-
-	<-ctx.Done()
-
-	<-time.After(time.Second)
-
 	return ch
 }
