@@ -40,7 +40,6 @@ func All(ctx context.Context, phrase string, files []string) <-chan []Result {
 		go func(ch chan<- []Result, ctx context.Context) {
 			defer wg.Done()
 
-			<-ctx.Done()
 			buf := make([]byte, 4094)
 			content := make([]byte, 0)
 
