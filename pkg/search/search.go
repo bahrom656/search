@@ -34,6 +34,7 @@ func All(ctx context.Context, phrase string, files []string) <-chan []Result {
 		reads = append(reads, read)
 	}
 	wg := sync.WaitGroup{}
+
 	goroutines := len(files)
 
 	for i := 0; i < goroutines; i++ {
@@ -41,8 +42,8 @@ func All(ctx context.Context, phrase string, files []string) <-chan []Result {
 		i := i
 		go func(ch chan<- []Result, ctx context.Context) {
 			defer wg.Done()
-			<-ctx.Done()
 
+			<-ctx.Done()
 			buf := make([]byte, 4094)
 			content := make([]byte, 0)
 
@@ -63,29 +64,28 @@ func All(ctx context.Context, phrase string, files []string) <-chan []Result {
 			}
 			data := string(content)
 
-			datas := strings.Split(data, "\n")
-
+			datas := strings.Split(data, string(rune(13))+string(rune(10)))
 			for line, str := range datas {
 				pos := strings.Index(str, phrase)
-				result := Result{}
 				if pos != -1 {
+					result := Result{}
 					result = Result{
 						Phrase:  phrase,
 						Line:    str,
-						LineNum: int64(line),
-						ColNum:  int64(pos),
+						LineNum: int64(line + 1),
+						ColNum:  int64(pos + 1),
 					}
 					results = append(results, result)
-				} else {
-					result = Result{
-						Phrase:  phrase,
-						ColNum:  nil,
-						LineNum: nil,
-						Line:    nil}
-					results = append(results, result)
-				}
-				ch <- results
+				} //} else {
 			}
+			//	result = Result{
+			//		Phrase:  phrase,
+			//		ColNum:  0,
+			//		LineNum: 0,
+			//		Line:    ""}
+			//	results = append(results, result)
+			//}
+			ch <- results
 			return
 		}(ch, ctx)
 
