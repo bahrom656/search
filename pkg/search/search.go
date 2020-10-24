@@ -82,7 +82,6 @@ func All(ctx context.Context, phrase string, files []string) <-chan []Result {
 			//	results = append(results, result)
 			//}
 			ch <- results
-			return
 		}(ch, ctx)
 
 	}
