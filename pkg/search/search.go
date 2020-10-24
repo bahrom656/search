@@ -21,9 +21,6 @@ func All(ctx context.Context, phrase string, files []string) <-chan []Result {
 	ch := make(chan []Result)
 	reads := make([]*os.File, 0)
 
-	root := context.Background()
-	ctx, _ = context.WithTimeout(root, time.Second*10)
-
 	for _, file := range files {
 		read, err := os.Open(file)
 
